@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sento v30.7.05</title>
+    <title>Sento v30.8.01 (GitHub Edition)</title>
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Outfit:wght@500;700&family=Kosugi&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
@@ -86,14 +86,19 @@
         .overlay-nav span { cursor: pointer; pointer-events: auto; }
         .overlay-nav.left { left: 15px; }
         .overlay-nav.right { right: 15px; justify-content: flex-end; }
+        
+        /* ローディング画面用の簡易スタイル */
+        #loading-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #fff; display: flex; justify-content: center; align-items: center; font-family: 'Outfit', sans-serif; font-size: 2rem; color: var(--correct-coral); z-index: 10000; }
     </style>
 </head>
 <body>
+<div id="loading-screen">Loading Sento Data...</div>
+
 <div class="main-layout">
     <header class="app-header">
         <div class="btn-back-col"><button id="header-back" class="btn-back hidden" onclick="app.goHome()">Index</button></div>
         <div class="app-logo-col"><div class="app-logo" onclick="app.goHome()">Sento</div></div>
-        <div class="version-col"><div class="version">v30.7.05</div></div>
+        <div class="version-col"><div class="version">v30.8.01</div></div>
     </header>
     <div id="screen-index" class="screen">
         <div class="game-main-container">
@@ -139,8 +144,20 @@
 const app = {
     currGrade: 1, currIdx: 0, mode: 'easy', sentences: [], soundOn: true, synth: window.speechSynthesis, 
     isFinished: false, isJudging: false, audioCtx: null,
-    init() { 
-        this.parseData(); this.renderList();
+    async init() { 
+        // 外部CSVファイルの読み込み処理
+        try {
+            const response = await fetch('data.csv');
+            if (!response.ok) throw new Error('CSVファイルの読み込みに失敗しました。');
+            const csvText = await response.text();
+            this.parseData(csvText);
+            this.renderList();
+            document.getElementById('loading-screen').remove();
+        } catch (error) {
+            document.getElementById('loading-screen').innerText = error.message;
+            return;
+        }
+
         if (this.synth.onvoiceschanged !== undefined) {
             this.synth.onvoiceschanged = () => this.synth.getVoices();
         }
@@ -158,8 +175,8 @@ const app = {
         new Sortable(document.getElementById('answer-line'), { animation: 150 });
         setTimeout(() => this.updateUnderlines(), 100);
     },
-    parseData() {
-        let lines = CSV_DATA.trim().split('\n');
+    parseData(csvRawData) {
+        let lines = csvRawData.trim().split('\n');
         if (lines.length > 1 && lines[0].includes("学年")) lines = lines.slice(1);
         this.sentences = lines.map(line => {
             let row = []; let cell = "", inQuotes = false;
@@ -171,7 +188,6 @@ const app = {
             }
             row.push(cell.trim());
             
-            // 末尾の空要素（,,など）を完全に除去
             while (row.length > 0 && row[row.length - 1] === "") { row.pop(); }
             
             const grade = parseInt(row[0]) || 1;
@@ -180,13 +196,11 @@ const app = {
             const unit = row[3] || "";
             const en = row[4] || "";
             
-            // 後ろから探して「【 」を含む最初の有効な列を「解説」とする
             let hintIdx = -1;
             for (let i = row.length - 1; i >= 5; i--) {
                 if (row[i] && row[i].includes('【')) { hintIdx = i; break; }
             }
             
-            // ヒントが見つからない場合は最後から2番目以降を日本文とみなす
             if (hintIdx === -1) hintIdx = row.length; 
 
             const hint = row[hintIdx] || "";
@@ -324,145 +338,6 @@ const app = {
     next() { if(this.currIdx < this.sentences.length - 1) { this.currIdx++; this.loadQuestion(); } }
 };
 window.onload = () => app.init();
-
-// お送りいただいたデータをそのまま流し込める形式にしています
-const CSV_DATA = `学年,No.,ページ,ユニット,英文,日本文,文法解説,,
-1,s1,p.12,Unit 1,I am Edward Trout.,私はエドワード・トラウトです。,【be動詞の肯定文】I am ~ で「私は～です」と正体や名前を説明する。「I am」「you are」「he is」のように、be動詞は主語によって変わる。「＝（イコール）」の役割を果たす。,,
-1,s2,p.12,Unit 1,I like Japanese sweets.,私は日本の甘い菓子が好きです。,【一般動詞の肯定文】like（好き）や play（する）など、具体的な動作を表す言葉を「一般動詞」と呼ぶ。英語では「主語（だれが）・動詞（どうする）・目的語（何を）」の順番で並べる。,,
-1,s3,p.14,Unit 1,"Do you like rugby? / Yes, I do. / No, I do not.",あなたはラグビーが好きですか。 / はい、好きです。 / いいえ、好きではありません。,【一般動詞の疑問文】「〜しますか」と相手に動作を質問する時は、文の先頭に Do を置く。「Doから始まる疑問文」→「YesかNoで、doを使って答える」,,
-1,s4,p.14,Unit 1,I do not play rugby.,私はラグビーをしません。,【一般動詞の否定文】「～しません」と否定する時は、動詞の前に do not（短縮形 don't）を置く。,,
-1,s5,p.16,Unit 1,"Are you an anime fan? / Yes, I am. / No, I am not.",あなたはアニメのファンですか。 / はい、そうです。 / いいえ、ちがいます。,"【be動詞の疑問文】「〜ですか」と質問する時は、areを主語の前に出す。答える時も be動詞を使って Yes, I am. と答える。「be動詞から始まる疑問文」→「YesかNoで、be動詞を使って答える」",,
-1,s6,p.16,Unit 1,I am not an anime fan.,私はアニメのファンではありません。,【be動詞の否定文】（～ではないと言う）時は、be動詞のすぐ後ろに not を置く。一般動詞の否定文（don't）と混同しないよう注意。,,
-1,s7-1,p.20,Unit 2,This is Jun.,こちらは純です。,【this】「こちらは～です」と近くの人や物を紹介する時は This is ~ を使う。This は「これ/こちら」を指す言葉。,,
-1,s7-2,p.20,Unit 2,He is in Class 1-1.,彼は1年1組です。,【代名詞 he】男性のことを指して「彼は～です」と言う時は he を主語にする。このとき、be動詞は is を使う。,,
-1,s7-3,p.20,Unit 2,He is not in Class 1-2.,彼は1年2組ではありません。,【be動詞の否定文】「彼は～ではない」という否定の文。be動詞 is の後ろに not を置くことで否定を表す。,,
-1,s7-4,p.20,Unit 2,This is Ms. Chen.,こちらはチェン先生です。,【this】相手との距離が近い時に人を紹介する表現。先生や目上の人を紹介する時も、基本はこの This is ~ の形を使う。,,
-1,s7-5,p.20,Unit 2,She is our new teacher.,彼女は私たちの新しい先生です。,【代名詞 she】女性のことを指して「彼女は～です」と言う時は she を主語にする。be動詞は is を使う。,,
-1,s7-6,p.20,Unit 2,She is not from America.,彼女はアメリカ出身ではありません。,【from】「～の出身である」は is from ~ で表す。否定したい時は be動詞の後ろに not を入れ、is not とする。,,
-1,s8,p.20,Unit 2,"Is he on the soccer team? / Yes, he is. / No, he is not.",彼はサッカー部に入っていますか。 / はい、入っています。 / いいえ、入っていません。,【he/she の疑問文】主語が he や she の疑問文は Is を文の先頭に出す。「Isで始まる疑問文」→「YesかNoで、isを使って答える」,,
-1,s9-1,p.22,Unit 2,I can make gyoza.,私はぎょうざを作ることができます。,【助動詞 can】can は「～できる」という能力を表す言葉。動詞の前に置き、その動詞は必ず「原形（元の形）」にする。,,
-1,s9-2,p.22,Unit 2,I cannot make shumai.,私はシュウマイを作ることができません。,【助動詞 can の否定文】「～できない」と言う時は can't（cannot）を使う。can'tのすぐ後ろの動詞は原形のままにする。,,
-1,s10,p.22,Unit 2,"Can you read hiragana? / Yes, I can. / No, I cannot.",あなたはひらがなを読むことができますか。 / はい、読めます。 / いいえ、読めません。,【助動詞 can の疑問文】「〜できますか」と相手の能力を質問する時は can を主語の前に出す。「canから始まる疑問文」→「YesかNoで、canを使って答える」,,
-1,s11-1,p.24,Unit 2,This is your pen.,これはあなたのペンです。,【this】近くのものを指す時はthis（これ）を使う。your は「あなたの～」という所有を表す言葉。,,
-1,s11-2,p.24,Unit 2,That is my pen.,あれは私のペンです。,【that】少し離れた場所にあるものを指す時は that（あれ）を使う。my は「私の～」という所有を表す言葉。,,
-1,s12,p.24,Unit 2,"Is this a bird? / Yes, it is. / No, it is not.",これは鳥ですか。 / はい、そうです。 / いいえ、ちがいます。,【this is ~ の疑問文】isをthisの前に出す。答える時は、this ではなく it（それは）に置き換えて答える。「Isで始まる疑問文」→「YesかNoで、isをつけて答える」,,
-1,s13,p.32,Unit 3,"What is that? / It is a kamon, a symbol for a family.",あれは何ですか。 / それは家紋、家族を表す記号です。,【疑問詞 what】正体のわからない物について「何？」と質問する時は What を文の先頭に置く。一番知りたい情報を最初に持ってくるのが英語のルール。,,
-1,s14,p.32,Unit 3,Who is your favorite character? / My favorite character is Kojiro.,あなたのいちばん好きなキャラクターはだれですか。 / 私のいちばん好きなキャラクターは小次郎です。,【疑問詞 who】人について「だれ？」と質問する時は Who を文の先頭に置く。favorite は「お気に入りの」という意味。,,
-1,s15,p.34,Unit 3,How do you come to school? / I walk to school.,あなたはどのように学校に来ますか。 / 私は歩いて学校に来ます。,【疑問詞 how】How は「どのようにして」という手段や方法を質問する言葉。文の先頭に置く。交通手段（バスや電車など）を質問する時によく使われる。,,
-1,s16,p.34,Unit 3,When do you come to school? / I come to school on Mondays.,あなたはいつ学校に来ますか。 / 私は月曜日に学校に来ます。,【疑問詞 when】「いつ」という時を聞く時は When を文の先頭に置く。on Mondays と複数形にすることで「毎週月曜日に」という習慣を表すことができる。,,
-1,s17-1,p.36,Unit 3,Where is the park? / It is near the station.,その公園はどこですか。 / それは駅の近くです。,【疑問詞 where】場所を質問する時は Where を使う。near は「～の近くに」という位置関係を表す言葉。,,
-1,s17-2,p.36,Unit 3,Where do you practice on rainy days? / We practice in the hallway.,あなたは雨の日にどこで練習をしますか。 / 私たちは廊下で練習をします。,【疑問詞 where】一般動詞の文で場所を質問する形。Where do you ~? のセットで覚えるのが効率的。,,
-1,s18,p.44,Unit 4,How many rabbits do you have? / I have three rabbits.,あなたはウサギを何羽飼っていますか。 / 私は3羽のウサギを飼っています。,【疑問詞 how many】いくつの～」と数を質問する時は How many を使う。後ろの名詞は必ず複数形（-s）にする。,,
-1,s19,p.46,Unit 4,What time is it? / It is three o'clock.,何時ですか。 / 3時です。,【疑問詞 what time】時刻を質問する決まり文句。答える時の It は特定の何かを指すのではなく、時間を表す時の形式的な主語になる。,,
-1,s20,p.46,Unit 4,What sports do you play? / I play soccer and tennis.,あなたは何のスポーツをしますか。 / 私はサッカーとテニスをします。,【疑問詞 what +名詞】What + 名詞 で「何の～」という具体的な範囲を聞く疑問文。What books のように名詞を複数形にすることが多い。,,
-1,s21,p.48,Unit 4,Come to the front.,前に来なさい。,【命令文】主語を省いて動詞の原形から書き始めると「命令文」になる。相手に対して「～しなさい」と指示を出す時に使う。,,
-1,s22,p.48,Unit 4,Be brave.,勇気を出して。,【命令文】be動詞を使った命令文。「～でありなさい（～な状態でいなさい）」という意味。,,
-1,s23,p.48,Unit 4,Don't worry.,心配しないで。,【禁止の命令文】命令文の前に Don't を置くと「～しないで」という禁止や助言の意味になる。,,
-1,s24,p.62,Unit 5,Fumiya lives in Hawaii.,文也はハワイに住んでいます。,【三単現のS】主語が「私・あなた」以外の一人の時、動詞の語尾に s（es）をつける。これが「3人称単数現在形（三単現）」の基本ルール。,,
-1,s25,p.64,Unit 5,"Does Fumiya live near a beach? / Yes, he does. / No, he does not.",文也はビーチの近くに住んでいますか。 / はい、住んでいます。 / いいえ、住んでいません。,【三単現の疑問文】主語が3人称単数の時の疑問文は Does を使う。Does を使うと、動詞の s（es）は消えて「原形」に戻る。「Doesから始まる疑問文」→「YesかNoで、doesを使って答える」,,
-1,s26,p.67,Unit 5,Maria does not speak Japanese.,マリアは日本語を話しません。,【三単現の否定文】主語が3人称単数の時の疑問文は Doesn't（does not） を使う。Doesn'tを使うと、動詞のs（es）は消えて「原形」に戻る。,,
-1,s27-1,p.72,Unit 5,That is Jun. / Do you know him?,あちらは純です。 / あなたは彼を知っていますか。,【代名詞の目的格】him は「彼を」という意味で、動詞の目的語として使われる形（目的格）。主語の he とは形が異なる。「動作を受ける人」を指す時はこの形を使う。,,
-1,s27-2,p.72,Unit 5,That is Anna. / Do you know her?,あちらはアナです。 / あなたは彼女を知っていますか。,【代名詞の目的格】her は「彼女を」という意味の目的格。動詞の後ろなどに置く時はこの形に変える必要がある。「彼女の～」という所有格と同じ形。,,
-1,s28,p.74,Unit 6,Whose ticket is this? / It is mine.,これはだれのチケットですか。 / それは私のものです。,【疑問詞 Whose】「だれの物？」と持ち主を聞く時は Whose を使う。答えの mine は「私のもの」という意味。「Whose ＋ 名詞 ～?」の語順を意識する。,,
-1,s29,p.77,Unit 6,"Which do you speak, English or Japanese? / I speak English.",あなたは英語と日本語のどちらを話しますか。 / 私は英語を話します。,【疑問詞 Which】Which は「どちら」と選ばせる時に使う。文末に A or B? を付け足して選択肢を提示する。「どちらか１つ」を答えるのがルール。,,
-1,s30,p.82,Unit 6,I am watching TV now.,私は今、テレビを見ています。,【現在進行形】「今まさに～している」という進行中の動作を表す現在進行形。be動詞 + ~ing の形で作り、一時的な動作に焦点を当てる。動作が続いていることを強調する。,,
-1,s31-1,p.84,Unit 6,"Are you walking around a lake? / Yes, I am. / No, I am not.",あなたは湖のまわりを歩いていますか。 / はい、そうです。 / いいえ、ちがいます。,"【現在進行形の疑問文】現在進行形の疑問文。be動詞を前に出し、答える時も be動詞で答える。「Are you ~ing?」→「Yes, I am. / No, I'm not.」「be動詞から始まる疑問文」→「YesかNoで、be動詞を使って答える」",, 
-1,s31-2,p.84,Unit 6,What are people doing? / They are taking pictures.,人々は何をしていますか。 / 彼らは写真を撮っています。,【現在進行形の疑問詞】相手が何をしているか質問する定番。What are you doing? の形を基本として覚えるとスムーズ。答える時は現在進行形を使って具体的に説明する。,,
-1,s32-1,p.87,Unit 6,How interesting!,なんておもしろいのでしょう。,【感嘆文（How）】How + 形容詞 で「なんて～なんだ！」と驚きを表現する感嘆文。感情を強調する時に使われる。最後に「！」をつける。,,
-1,s32-2,p.87,Unit 6,What a funny excuse!,なんておかしな言い訳なのでしょう。,【感嘆文（What）】「What a + 形容詞 + 名詞」で「なんて～な...なんだ！」と強調する感嘆文。名詞について驚きを表す時に使う。,,
-1,s33-1,p.92,Unit 7,She wants to help people in need.,彼女は困っている人々を助けたいと思っています。,【不定詞（名詞的用法）】to + 動詞の原形 で「～すること」という名詞のような役割をさせる（不定詞の名詞的用法）。want to ~ で「～したい」となる。,,
-1,s33-2,p.92,Unit 7,She tries to do her best.,彼女は最善を尽くしようとしています。,【不定詞（try to）】try to ~ で「～しようと努力する/試みる」という意味。「これからしようとすること」に向かって頑張るニュアンス。,,
-1,s34,p.94,Unit 7,What do you want to eat? / I want to eat chicken curry.,あなたは何を食べたいですか。 / 私はチキンカレーを食べたいです。,【疑問詞＋不定詞】「～したいこと」の内容を尋ねている。疑問詞 What と不定詞 want to を組み合わせた文。「What do you want to ~?」のセットで覚える。,,
-1,s35,p.97,Unit 7,The children look happy.,子供たちは幸せそうに見えます。,【動詞 look ＋ 形容詞】look + 形容詞 で「～そうに見える」という見た目の印象を伝える。is happy よりも「見て判断した」ニュアンスが強くなる。直後に形容詞を置くのがルール。,,
-1,s36-1,p.104,Unit 8,I stayed in Canada last winter.,私は昨年の冬にカナダに滞在しました。,【過去形（規則変化）】過去の動作を表す過去形。動詞の語尾に ed（d） をつける（規則変化）。last winter（去年の冬）など過去の言葉と一緒に使う。,,
-1,s36-2,p.104,Unit 8,I went to Canada during the winter vacation.,私は冬休みにカナダへ行きました。,【過去形（不規則変化）】動詞 go の過去形は went になる。このように形が不規則に変わるものを「不規則変化動詞」と呼び、暗記が必要になる。一つずつ丁寧に覚えるのがコツ。,,
-1,s37,p.106,Unit 8,"Did you eat rice cakes? / Yes, I did. / No, I did not.",あなたはおもちを食べましたか。 / はい、食べました。 / いいえ、食べませんでした。,"【過去形の疑問文】過去の疑問文は Did を文頭に置く。Did 自体が過去を表すので、動詞は ed のつかない「原形」に戻るルールがある。「Did ～?」→「Yes, I did. / No,  I didn't.」「Didから始まる疑問文」→「YesかNoで、didを使って答える」",,
-1,s38,p.109,Unit 8,I did not buy a good luck charm.,私はお守りを買いませんでした。,【過去形の否定文】一般動詞（過去形）の否定文は didn't（did not）を動詞の前に置く。didn'tをつけたら、後ろの動詞は原形に戻る点に注意。,,
-1,s39,p.114,Unit 8,"Were you nervous during the contest? / Yes, I was. / No, I was not.",あなたはコンテストの最中に緊張しましたか。 / はい、しました。 / いいえ、しませんでした。,【be動詞の過去形】be動詞の過去形。am/is は was、are は were に変わる。主語に合わせて使い分ける必要がある。否定文や疑問文の作り方は現在形と同じ。,,
-1,s40,p.116,Unit 8,I was playing soccer then.,私はそのときサッカーをしていました。,【過去進行形】過去のある瞬間に「～していた」という進行中の動作を表す過去進行形。was/were + ~ing で作る。「その時（then）」などの言葉と一緒に使うことが多い。,,
-1,s41-1,p.119,Unit 8,There is a campground near the lake.,湖の近くにキャンプ場があります。,【There is ~】「～がある、いる」という存在を表す There is ~。初めて話題に出すものを紹介する時に使う。後ろに来る名詞が主語の役割を果たす。名詞が単数ならis、複数ならareを使う。,,
-1,s41-2,p.119,Unit 8,"Is there a campground near the lake? / Yes, there is. / No, there is not.",湖の近くにキャンプ場がありますか。 / はい、あります。 / いいえ、ありません。,"【There is ~ の疑問文】「～がある、いる」という存在を質問する There is ~ の疑問文。新しい情報を提示したり確認したりする時に使う。「Is there ~?」→「Yes, there is. / No,  there isn't.」「be動詞から始まる疑問文」→「YesかNoで、be動詞を使って答える」",,
-1,e1,p.69,RLE 1,Why don't you join us?,あなたも参加しませんか。,【勧誘の表現】Why don't you ~? で「～しませんか」と相手を勧誘する表現。「なぜしないのか」という疑問ではなく提案として機能する。「一緒にしよう」という温かい誘い。,,
-1,e2-1,p.79,RLE 2,Can I open the window? / Sure.,窓を開けてもいいかな。 / もちろん。,【許可の求め方】Can I ~? は「～してもいいですか」と相手に許可を求める際に使う。Sure. は承諾を表す定番の返答。「May I ~?」よりも少しカジュアルな表現。,,
-1,e2-2,p.79,RLE 2,Can you help me? / All right.,手伝ってくれるかな。 / わかった。,【依頼の表現】Can you ~? は相手に依頼する表現。All right. は快諾を伝える言葉として日常的に使われる。「～してくれますか？」という頼み事。,,
-1,e3-1,p.89,RLE 3,I'm looking for City Hospital.,私は市民病院をさがしています。,【進行形の表現】be looking for ~ で「～をさがしている」。目的地を探している最中であることを伝える時に使う。look for で「～をさがす」という意味。,,
-1,e3-2,p.89,RLE 3,Go along this street.,この道に沿って行ってください。,【道案内の命令文】Go along ~ は道案内で「～に沿って進む」と指示を出す命令文。道順を説明する際の基本。動詞の原形から始める。,,
-1,e3-3,p.89,RLE 3,Turn left at the second traffic light.,２つめの信号を左に曲がってください。,【道順の指示】Turn left で「左に曲がる」。at は「特定の地点（～で）」を指し、順番を示す second などを伴う。「Turn left at the second corner」のように具体的に言う。,,
-1,e4-1,p.99,RLE 4,What would you like? / I'd like a steak.,何になさいますか。 / ステーキをお願いします。,【丁寧な注文・要望】What would you like? は丁寧な注文の聞き方。答える側も I would like ~ で「～をお願いします」と丁寧に応じる。want よりも上品な表現。,,
-1,e4-2,p.99,RLE 4,"Would you like some dessert? / Yes, please. / No, thank you.",デザートはいかがですか。 / はい、お願いします。 / いいえ、けっこうです。,"【丁寧な勧誘・返答】Would you like ~? は「～はいかがですか」と勧める表現。Yes, please.（肯定）や No,  thank you.（否定）で受けるのがマナー。", ,
-1,e5-1,p.111,RLE 5,Dear Grandma.,おばあちゃんへ,【手紙の宛名】手紙の冒頭で使われる宛名の書き方。Dear + 人 で「親愛なる～へ」という意味になる。,,
-1,e5-2,p.111,RLE 5,"Love, Anna",アナより［手紙などの結びの言葉］,"【手紙の結び】手紙の結びの言葉。親しい家族や友人に使う非常に親密な表現。最後に自分の名前を書くのが一般的。「,（カンマ）」を最後に忘れないようにする。",,
-1,e6,p.121,RLE6,What's wrong? / I have a stomachache.,どうしましたか。 / おなかが痛いのです。,【体調を尋ねる・伝える】相手の異変に気づいた時に「どうしたの？」と聞くフレーズ。具体的な症状は I have + 病名 で表す。「I have a cold（風邪です）」など。,,
-2,s1-1,p.10,Unit 1,I am going to visit Singapore tomorrow.,私は明日シンガポールを訪れるつもりです。,【未来の予定（be going to）】「～するつもりだ」というbe going to ~ は、すでに決めている予定や、状況から判断して「こうなるはずだ」という未来の出来事を表す。be going to の後ろは必ず動詞の原形にする決まりがある。,,
-2,s1-2,p.10,Unit 1,"Are you going to visit Singapore tomorrow? / Yes, I am. / No, I am not.",あなたは明日シンガポールを訪れるつもりですか。 / はい、そのつもりです。 / いいえ、そうではありません。,【未来の表現（be going to）】進行形の疑問文は、be動詞を主語の前にもってくる。「be動詞から始まる疑問文」→「YesかNoで、be動詞を使って答える」,,
-2,s2,p.11,Unit 1,I will make a reservation.,私が予約をしましょう。,【助動詞 will】その場で決めた意志（～しよう）や、不確実な未来の予測（～だろう）を伝える時に使われる。be going to との違いを意識する。,,
-2,s3,p.13,Unit 1,I will show you some pictures.,私があなたに何枚か写真を見せましょう。,【第4文型（show A B）】show A（人）＋ B（もの） で「人にものを見せる」という形。「give A B（AにBをあげる）」も同じ仲間。,,
-2,s4,p.15,Unit 1,People call this area Little India.,人々はこの区域をリトル・インディアと呼びます。,【第5文型（call A B）】call A B で「A（人・もの）をB（名前）と呼ぶ」となる。A（この区域）＝B（リトル・インディア）という関係が成り立つ。,,
-2,s5,p.20,Unit 2,"When I go to a ramen restaurant, I order tonkotsu ramen.",私はラーメン店に行くと、豚骨ラーメンを注文します。,【接続詞 when】「～する時」という時間を表し、When + 文，（カンマ） 文 という形で、2つの文と文をつなぐ役割をする。,,
-2,s6,p.21,Unit 2,"If you have time, you can come.",もし時間があればあなたは来ることができます。,【接続詞 if】接続詞 if は「もし～ならば」という条件を表す。未来のことでも if のカタマリの中では現在形を使うルールがある点に注意。,,
-2,s7,p.23,Unit 2,I like Sapporo ramen because the soup is thick.,スープが濃いので、私は札幌ラーメンが好きです。,【接続詞 because】接続詞 because は「なぜなら～だから」と理由を説明する。日本語と語順が逆になり、後から理由を足す流れになる。,,
-2,s8,p.25,Unit 2,I think that food travels around the world.,私は食べ物は世界中を旅すると思います。,【接続詞 that】接続詞 that は、後ろに続く文を「～ということ」という一つの大きな名詞のカタマリにする。I think that ~（～だと思う）などでよく使われる。,,
-2,s9,p.30,Unit 3,I use a computer to study English.,私は英語を勉強するためにコンピュータを使います。,【不定詞（目的）】不定詞（to + 原形）を使って、動作の「目的」を説明する。「～するために」と訳され、行動の理由を付け足す役割になる。,,
-2,s10,p.31,Unit 3,I am happy to hear that.,私はそれを聞いてうれしいです。,【不定詞（原因）】不定詞を使って「感情の原因」を説明する形。形容詞の後に置いて、「～して（その結果）うれしい」といった意味になる。心の動きを説明する。,,
-2,s11,p.33,Unit 3,She has a lot of work to do.,彼女にはすべき多くの仕事があります。,【不定詞（形容詞的用法）】不定詞（形容詞的用法）。to do が直前の名詞を後ろから修飾して、「すべき～」という具体的な説明を付け足す。名詞を詳しく説明する。,,
-2,s12,p.35,Unit 3,It is important to look at the children's faces.,子供たちの顔を見ることが大切です。,【形式主語 It】形式主語の It。「It is 形容詞 to 動詞の原型」→「〜することは〜だ」主語が不定詞（～すること）で長すぎる場合、仮の主語 It を先に置き、本当の内容を後ろに回す。,,
-2,s13-1,p.50,Unit 4,You have to speak English.,あなたは英語を話さなければなりません。,【義務の表現（have to）】have to ~ は「～しなければならない」という義務。状況から判断して、そうする必要がある時に使われる。「have to」の直後は動詞の原形。,,
-2,s13-2,p.50,Unit 4,You do not have to speak perfect English.,あなたは完璧な英語を話さなくてもよいです。,【不必要の表現】don't（doesn't）have to ~ は「～しなくてもよい（不要）」という意味。肯定文の「義務」から意味が大きく変わるため注意。,,
-2,s14-1,p.51,Unit 4,We must save water.,私たちは水を節約しなければなりません。,【助動詞 must】「どうしても～しなければならない」という強い義務。話し手の強い意志や命令が含まれる。助動詞 must のすぐ後ろは動詞の原形がくる。,,
-2,s14-2,p.51,Unit 4,We must not take long showers.,私たちは長時間シャワーを浴びてはいけません。,【禁止の表現（must not）】must not ~ は「～してはいけない（禁止）」という強い禁止を表す。ルールや法律を伝える時に使う。絶対にダメという強い響き。,,
-2,s15,p.53,Unit 4,They enjoy reading books.,彼らは本を読むことを楽しみます。,【動名詞】動詞に ing をつけて名詞のように扱う動名詞。「～すること」という意味。enjoy などの後はこれを使う。文の中で主語や目的語になる。,,
-2,s16,p.55,Unit 4,Talking with him was fun.,彼と話すことは楽しかったです。,【動名詞の主語】動名詞を主語にした文。「～することは...だ」という形。動名詞が主語の時は、常に単数（is / was）として扱うのが鉄則。,,
-2,s17,p.60,Unit 5,I know how to use these products.,私はこれらの製品の使い方を知っています。,【疑問詞＋不定詞（how to）】「疑問詞 + 不定詞」の形。how to ~ で「～のしかた/方法」という意味の名詞のカタマリを作る。「作り方」や「行き方」などに使う。,,
-2,s18,p.61,Unit 5,I can show you how to use these products.,私はこれらの製品の使い方をあなたに見せることができます。,【第4文型＋不定詞】第4文型（show A B）の B の部分に、how to のカタマリを置いた形。具体的な情報を伝えるのに便利。Aに「～の仕方」を見せる。,,
-2,s19,p.63,Unit 5,I am sure that these ideas help many people.,私はこれらの考えが、多くの人々を助けると確信しています。,【確信の表現】be sure that ~ で「～ということを確信している（きっと～だと思う）」という強い信頼を表す表現。話し手の自信を示す。,,
-2,s20-1,p.70,Unit 6,A volleyball is smaller than a basketball.,バレーボールはバスケットボールよりも小さいです。,【形容詞（副詞）の比較級】2つのものを比べる。「A is ~er than B（AはBより〜だ）」の意味を表す。短い形容詞（副詞）の語尾に er をつけ、後ろに than（～よりも）を置く。,,
-2,s20-2,p.70,Unit 6,A volleyball is the smallest of the three.,バレーボールは3つの中でいちばん小さいです。,【形容詞（副詞）の最上級】3つ以上を比べる。「Ais the 〜est in B.（AはBの中でもっとも～だ）」と言う時、形容詞（副詞）の前に the、語尾に est をつける。範囲（in / of）を添えるのがコツ。,,
-2,s21-1,p.71,Unit 6,This sport is more interesting than that one.,このスポーツはあのスポーツよりもおもしろいです。,【長い形容詞（副詞）の比較級】語尾に er をつけるのではなく、前に more を置いて比較級を作る。than を後ろに置くのは同じ。,,
-2,s21-2,p.71,Unit 6,This sport is the most interesting sport of all.,このスポーツは全てのスポーツの中でいちばんおもしろいです。,【長い形容詞（副詞）の最上級】単語の前に the most を置いて「一番～だ」と表現する。単語のつづりが長い場合にこの形になる。,,
-2,s22-1,p.73,Unit 6,Many of our classmates like other sports better than basketball.,クラスメートの多くがバスケよりほかのスポーツが好きです。,【better の用法】well や good の比較級 better。like A better than B で「BよりもAが好きだ」という定番フレーズ。,,
-2,s22-2,p.73,Unit 6,Seven of them like tennis the best.,彼らのうち7人は、テニスがいちばん好きです。,【best の用法】best は well / good の最上級。「もっとも」「一番」という意味。「like ~ the best」で「一番好き」となる。,,
-2,s23,p.75,Unit 6,Soccer is as popular as tennis.,サッカーはテニスと同じくらい人気があります。,【形容詞（副詞）の同等比較】as + 形容詞 + as で、2つのものが同じ程度であることを表す。「～と同じくらい...だ」という訳になる。,,
-2,s24,p.90,Unit 7,This place is selected as a World Heritage site.,この場所は世界遺産に選ばれています。,【受け身の文】受動態とも呼ぶ。be動詞 + 過去分詞 で「～される」という意味。主語が何かを「受ける」側であることを強調する。,,
-2,s25-1,p.91,Unit 7,"Is it called the Cape Floral Region? / Yes, it is. / No, it is not.",それはケープ植物区保護地域と呼ばれていますか。,【受け身の文の疑問文】受動態の疑問文。be動詞を主語の前に出すことで「～されていますか？」という質問になる。「be動詞から始まる疑問文」→「YesかNoで、be動詞を使って答える」,,
-2,s25-2,p.91,Unit 7,It is called the Cape Floral Region.,それはケープ植物区保護地域と呼ばれています。,【受け身の文（call A B）】「A is called B（AはBと呼ばれている）」。名前や通称を説明する際によく使われる形。「～と呼ばれている」という紹介の表現。,,
-2,s26,p.93,Unit 7,The Taj Mahal is loved by many people.,タージ・マハルは多くの人々に愛されています。,【受け身の文の動作主】受動態で「だれによって」動作が行われるかを示す時は、過去分詞の後に by + 人 を置く。,,
-2,s27,p.95,Unit 7,Mt. Fuji will be enjoyed by people forever.,富士山は永遠に人々に楽しまれるでしょう。,【未来の受け身の文】will be + 過去分詞 という形になり、「これから～されるだろう」という予測を表す。助動詞の後は常に原形（be）になる。,,
-2,e1,p.17,RLE 1,We're sorry for the delay.,遅れており、申し訳ありません。,【謝罪の表現】be sorry for ~ は「～を申し訳なく思う/謝罪する」という重要表現。delay（遅延）という名詞とともに、謝罪の理由を述べている。,,
-2,e2-1,p.27,RLE 2,May I ask you a favor? / Sure.,１つお願いしてもよろしいでしょうか。 / もちろん。,【丁寧なお願い】ask A a favor で「Aにお願い事をする」。May I ~? 「〜してもいいですか」を添えることで、非常に丁寧な依頼の切り出しとなる。「お願いがあるのですが」というニュアンス。,,
-2,e2-2,p.27,RLE 2,Could you take my picture? / All right. / OK.,私の写真を撮ってくださいませんか。 / いいですよ。 / オーケー。,【丁寧な依頼】Could you ~? は Can you ~? よりも丁寧な依頼。写真を撮る（take a picture）際の基本フレーズ。「～していただけますか？」という響き。,,
-2,e3,p.37,RLE 3,Thank you for your time today. / My pleasure.,今日はお時間をいただきありがとうございます。 / どういたしまして。,【感謝と返答】Thank you for A. で「Aをありがとう」と感謝する出来事を伝える表現。My pleasure. は「どういたしまして」のより丁寧で洗練された返答。,,
-2,e4,p.57,RLE 4,I look forward to seeing you again someday.,いつかまたお会いできるのを楽しみにしています。,【期待の表現】look forward to ~ing で「～するのを楽しみに待つ」。to の後ろには名詞か動名詞が来る点に注意。,,
-2,e5,p.67,RLE 5,Why don't you go and see all the creative products?,全ての創造的な製品を見に行かれてはいかがですか？,【提案の表現】Why don't you ~?（～したらどうですか）という提案。go and see で「見に行く」という連続した動作を表す。相手を促す表現。,,
-2,e6,p.77,RLE 6,Could you tell me how to get to Asakusa Station? / Sure. / Take the Yamanote Line.,浅草駅までの行き方を教えてくださいませんか。 / もちろん。 / JR山手線に乗ってください。,【道案内の尋ね方】道案内を求める際の最重要フレーズ。how to get to ~（～への行き方）という不定詞の塊を含んでいる。,,
-2,e7,p.97,RLE 7,"May I help you? / Yes, please. / I'm looking for a sari.",何かおさがしですか。 / はい、お願いします。 / サリーをさがしているのですが。,【接客の対話】接客の定番対話。店員からの声掛け（May I ~?）に対し、探し物がある（be looking for）と伝える流れ。探しているものを具体的に名詞で続ける。,,
-3,s1-1,p.10,Unit 1,I have watched Japanese anime twice.,私は日本のアニメを2回見たことがあります。,【現在完了（経験）】have + 過去分詞 で「（今までに）～したことがある」を表す。first time、twice、three timesなど回数を示す言葉とよく使われる。,,
-3,s1-2,p.10,Unit 1,Eddy has never watched Japanese anime.,エディは日本のアニメを一度も見たことがありません。,【現在完了（経験の否定）】never（一度も～ない）を have と過去分詞の間に置く。主語が Eddy なので has を使う。一度も経験がないことを強調する。,,
-3,s2-1,p.11,Unit 1,"Have you ever been to an anime event? / Yes, I have. / No, I have not.",これまでにアニメのイベントに行ったことがありますか。,【現在完了（疑問文）】現在完了の疑問文は、have（has）を主語の前にもってくる。ever（今までに）を一緒に使う。been to ~ は「～に行ったことがある」という意味。,,
-3,s2-2,p.11,Unit 1,I have never been to one.,私は一度も行ったことがありません。,【現在完了（been to の否定）】neverがつくことで経験がゼロであることを強調している。one は一度出てきた名詞（ここではイベント）の代わり。,,
-3,s3,p.13,Unit 1,Anime songs make me happy.,アニメソングは私を幸せにします。,【第5文型 make】「主語がAをBの状態にする」という意味。主語のせいで、A＝Bという関係が生まれる。感情の変化などを表す。,,
-3,s4,p.15,Unit 1,The story shows me that anything is possible.,その話は私にどんなことでも可能だと示してくれます。,【第4文型＋that節】『「もの」が「人」に「～ということ」を示す』→『人がものを〜すると〜ということがわかる』という意味になる。長い内容を伝える時に使う。,,
-3,s5-1,p.20,Unit 2,I have just finished my homework.,私はちょうど宿題を終えたところです。,【現在完了（完了の強調）】just（ちょうど）を差し込むことで、今終わったばかりだというニュアンスを伝える。,,
-3,s5-2,p.20,Unit 2,"Have you finished your homework yet? / Yes, I have.",あなたはもう宿題を終えましたか。,【現在完了（完了の疑問文）】「もう～しましたか」という続いていた動作が完了した状態になっているかをたずねる。yet（もう）とセットで使う。yet は文末に置く。,,
-3,s6-1,p.21,Unit 2,I have lived in Japan for five years.,私は5年間ずっと日本に住んでいます。,【現在完了（継続）】「○間、ずっと〜している」と過去から今この瞬間までずっと続いている事実や状態を一本の線のように表現している。,,
-3,s6-2,p.21,Unit 2,How long have you lived in Japan? / For five years.,どのくらい長く日本に住んでいますか。 / 5年間です。,【現在完了（継続）期間をたずねる疑問文】「どのくらいずっと～していますか」と質問する。期間を質問する時は How long、答える時は for を用いる。,,
-3,s7,p.23,Unit 2,I have been reading a book since 4 p.m.,午後4時からずっと本を読んでいます。,【現在完了進行形】「主語 ＋ have been + ~ing 」で「ずっと～し続けている」という意味。動作が過去から今も続いていることを伝える。,,
-3,s8,p.32,Unit 3,It is important for us to understand this problem.,私たちがこの問題を理解することが重要です。,【形式主語（for A to ~）】「It is 形容詞 for A to＋ 動詞の原型  」構文。「Aにとって～することは...だ」という意味。It は仮の主語。for us で「だれが」を示し、to understand 以下の「〜すること」が本当の主語になる。,,
-3,s9,p.33,Unit 3,I want everyone to know about this problem.,私は全ての人にこの問題について知ってほしいです。,【want A to do】「主語 ＋ want ＋ A ＋ to ＋ do」 で「Aに～してほしい」という願いを表す。自分ではくAが「～する」という動作をする。,,
-3,s10-1,p.35,Unit 3,Let us tell you about sea otters.,ラッコについて伝えさせてください。,【使役動詞 let】「Aに～させる（させてあげる）」という許可を与えるニュアンス。「主語 + help + 人など + 動詞の原型」となる。（to をつけてもつけなくてもよい）,,
-3,s10-2,p.35,Unit 3,People helped sea otters live safely.,人々はラッコが安全に生きる手助けをしました。,【使役動詞 help】「Aが～するのを助ける」という意味。「主語 + help + 人など + 動詞の原型」となる。（to をつけてもつけなくてもよい）,,
-3,s11,p.52,Unit 4,I know where the local shelter is.,地域の避難所がどこにあるか知っています。,【間接疑問文】疑問文が文の一部として組み込まれる。語順が「疑問詞 + 主語 + 動詞」という形に戻る点に注意。普通の文と同じ語順にする。,,
-3,s12,p.53,Unit 4,Tell me what you have done.,あなたたちが何をしたところか教えてください。,【間接疑問文】「何を～したか」という内容が文の後半組み込まれている。現在完了形も語順が「疑問詞 + 主語 + have + 動詞」という形に戻る点に注意。,,
-3,s13,p.57,Unit 4,There is a movie called Live Your Dream.,「夢を生きる」と呼ばれる映画があります。,【過去分詞の後置修飾】過去分詞の後置修飾。called ~（～と呼ばれている）が、前の名詞 movie を後ろから詳しく説明している。「〜される名詞」となる。,,
-3,s14,p.57,Unit 4,The woman smiling in a kimono is Taylor.,着物を着てほほえんでいる女性はテイラーです。,【現在分詞の後置修飾】現在分詞の後置修飾。smiling ~（ほほえんでいる）という言葉が、前の名詞 woman を後ろから説明している。「～している名詞」となる。,,
-3,s15,p.62,Unit 5,This is a picture I found on the internet.,これは私がインターネットで見つけた写真です。,【関係代名詞の省略】関係代名詞（目的格）の省略。a picture を I found という文が説明している。間に that などが隠れている。名詞の直後に主語＋動詞が来る形。,,
-3,s16,p.63,Unit 5,Gandhi is a man who has influenced a lot of people.,ガンディーは多くの人々に影響を与えた人です。,【関係代名詞 who】関係代名詞 who。先行詞が「人」で、後ろの文の中で主語の役割を果たす接着剤。「～する人」という意味になる。,,
-3,s17,p.67,Unit 5,This is a movie that makes people happy.,これは人々を幸せにする映画です。,【関係代名詞 that（主格）】関係代名詞 that。主格（～が...する名詞）として使われ、movie を詳しく説明している。人にも物にも使える。,,
-3,s18,p.67,Unit 5,This is a picture that I found on the internet.,これは私がインターネットで見つけた写真です。,【関係代名詞 that（目的格）】関係代名詞 that。目的格（～を...する名詞）として使われている。省略も可能。that の後ろに主語が続く。,,
-3,s19-1,p.78,Unit 6,I wish I could go to school.,学校に行くことができればいいのになあ。,【仮定法（I wish）】「～ならいいのになあ」という現実とはかけ離れた願望を表す。I wish の後に過去形を使うことで、現実には「できない」という事実を反映させている。,,
-3,s19-2,p.78,Unit 6,I wish I had pens and notebooks.,ノートやペンを持っていればいいのになあ。,【仮定法】実際には「持っていない」のだが、あえて過去形を使って妄想の世界を表している。現在の事実とはかけ離れた願い。,,
-3,s20,p.79,Unit 6,"If I were you, I would ask my friends for help.",もし私があなたなら、友達に助けを求めるでしょう。,【仮定法】仮定法の条件文。現在の事実とは違うことを仮定する。be動詞は主語がなんでも常に were を使うのが定番。例 I were / He wereなど,,
-3,s21,p.83,Unit 6,"If I had a school backpack, I would donate it.",もし私がランドセルを持っていれば、寄付するでしょう。,【仮定法】実際には持っていない物を「もしあれば」と仮定し、その結果どうするかを述べている。if 節は過去形になり、 続きの文にはwould / couldなどを使う。,,
-3,s22,p.83,Unit 6,Many things that we see every day come from overseas.,私たちが毎日目にする多くのものは海外から来ています。,【関係代名詞による修飾】関係代名詞による修飾。Many thingsという主語（名詞）のかたまりを、that we see every day というかたまりが説明している。長い主語に慣れるのがコツ。,,`;
 </script>
 </body>
 </html>
