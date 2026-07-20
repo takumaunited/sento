@@ -1,4 +1,4 @@
-<!-- Sento v30.8.05 (GitHub Edition) -->
+<!-- Sento v30.8.06 (GitHub Edition) -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- ブラウザのタブ表示を「Sento」に変更 -->
     <title>Sento</title>
-    <!-- タブのアイコンを本家GitHubと同じデザイン（黒背景に白猫）に変更 -->
-    <link rel="icon" href="https://github.com/favicon.ico" type="image/x-icon">
+    <!-- 初期設定としてライトモード用のアイコン（黒背景の四角）を設定。idを付与して動的変更を可能に -->
+    <link id="favicon" rel="icon" href="https://github.com/favicon.ico" type="image/x-icon">
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Outfit:wght@500;700&family=Kosugi&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
@@ -101,7 +101,7 @@
     <header class="app-header">
         <div class="btn-back-col"><button id="header-back" class="btn-back hidden" onclick="app.goHome()">Index</button></div>
         <div class="app-logo-col"><div class="app-logo" onclick="app.goHome()">Sento</div></div>
-        <div class="version-col"><div class="version">v30.8.05</div></div>
+        <div class="version-col"><div class="version">v30.8.06</div></div>
     </header>
     <div id="screen-index" class="screen">
         <div class="game-main-container">
@@ -148,6 +148,9 @@ const app = {
     currGrade: 1, currIdx: 0, mode: 'easy', sentences: [], soundOn: true, synth: window.speechSynthesis, 
     isFinished: false, isJudging: false, audioCtx: null,
     async init() { 
+        // ブラウザのダークモード検知とアイコン自動切り替えの初期化
+        this.initFaviconTheme();
+
         try {
             const response = await fetch('data.csv');
             if (!response.ok) throw new Error('data.csv の読み込みに失敗しました。ファイルが同階層にあるか確認してください。');
@@ -180,6 +183,28 @@ const app = {
         window.addEventListener('keyup', (e) => { if (e.key === 'Enter') this.isJudging = false; });
         new Sortable(document.getElementById('answer-line'), { animation: 150 });
         setTimeout(() => this.updateUnderlines(), 100);
+    },
+    // システムのライト/ダークモード設定を監視してアイコンを切り替える関数
+    initFaviconTheme() {
+        const favicon = document.getElementById('favicon');
+        const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        
+        const updateIcon = (e) => {
+            if (e.matches) {
+                // ダークモード（ブラウザのタブが黒い）の時は、背景が透明な白猫アイコンにする
+                favicon.setAttribute('href', 'https://github.githubassets.com/favicons/favicon.svg');
+                favicon.setAttribute('type', 'image/svg+xml');
+            } else {
+                // ライトモード（ブラウザのタブが白い）の時は、本家と同じ黒い四角のアイコンにする
+                favicon.setAttribute('href', 'https://github.com/favicon.ico');
+                favicon.setAttribute('type', 'image/x-icon');
+            }
+        };
+        
+        // 初回実行
+        updateIcon(darkModeQuery);
+        // 設定がリアルタイム変更された場合も監視
+        darkModeQuery.addEventListener('change', updateIcon);
     },
     parseData(csvRawData) {
         let lines = csvRawData.trim().split('\n');
@@ -252,7 +277,7 @@ const app = {
             let absoluteCapitals = new Set(["I"]); 
             wordsWithContext.forEach((w, idx) => {
                 let cleanW = w.replace(/[.?!,/]/g, ""); if(!cleanW) return;
-                let isBreak = (idx === 0) || (idx > 0 && /[.?!,/]/.test(wordsWithContext[idx-1]));
+                let isBreak = (idx === 0) || (idx > 0 && /[.?!,/]/g.test(wordsWithContext[idx-1]));
                 if(!isBreak && /^[A-Z]/.test(cleanW)) absoluteCapitals.add(cleanW);
                 abbrs.forEach(a => { if(w.includes(a)) absoluteCapitals.add(a.replace(".","")); });
             });
