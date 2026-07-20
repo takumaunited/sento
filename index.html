@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sento v30.8.01 (GitHub Edition)</title>
+    <title>Sento v30.8.02 (GitHub Edition)</title>
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Outfit:wght@500;700&family=Kosugi&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
@@ -86,8 +86,8 @@
         .overlay-nav span { cursor: pointer; pointer-events: auto; }
         .overlay-nav.left { left: 15px; }
         .overlay-nav.right { right: 15px; justify-content: flex-end; }
-        
-        /* ローディング画面用の簡易スタイル */
+
+        /* データ読み込み中の案内表示 */
         #loading-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #fff; display: flex; justify-content: center; align-items: center; font-family: 'Outfit', sans-serif; font-size: 2rem; color: var(--correct-coral); z-index: 10000; }
     </style>
 </head>
@@ -98,7 +98,7 @@
     <header class="app-header">
         <div class="btn-back-col"><button id="header-back" class="btn-back hidden" onclick="app.goHome()">Index</button></div>
         <div class="app-logo-col"><div class="app-logo" onclick="app.goHome()">Sento</div></div>
-        <div class="version-col"><div class="version">v30.8.01</div></div>
+        <div class="version-col"><div class="version">v30.8.02</div></div>
     </header>
     <div id="screen-index" class="screen">
         <div class="game-main-container">
@@ -145,16 +145,20 @@ const app = {
     currGrade: 1, currIdx: 0, mode: 'easy', sentences: [], soundOn: true, synth: window.speechSynthesis, 
     isFinished: false, isJudging: false, audioCtx: null,
     async init() { 
-        // 外部CSVファイルの読み込み処理
+        // 外部の data.csv からデータを引っ張ってくる処理
         try {
             const response = await fetch('data.csv');
-            if (!response.ok) throw new Error('CSVファイルの読み込みに失敗しました。');
+            if (!response.ok) throw new Error('data.csv の読み込みに失敗しました。ファイルが同階層にあるか確認してください。');
             const csvText = await response.text();
             this.parseData(csvText);
             this.renderList();
-            document.getElementById('loading-screen').remove();
+            
+            const loading = document.getElementById('loading-screen');
+            if (loading) loading.remove();
         } catch (error) {
-            document.getElementById('loading-screen').innerText = error.message;
+            console.error(error);
+            const loading = document.getElementById('loading-screen');
+            if (loading) loading.innerText = error.message;
             return;
         }
 
@@ -188,6 +192,7 @@ const app = {
             }
             row.push(cell.trim());
             
+            // 末尾の不要な空カンマ対策
             while (row.length > 0 && row[row.length - 1] === "") { row.pop(); }
             
             const grade = parseInt(row[0]) || 1;
@@ -196,6 +201,7 @@ const app = {
             const unit = row[3] || "";
             const en = row[4] || "";
             
+            // 解説列の自動判定ロジック
             let hintIdx = -1;
             for (let i = row.length - 1; i >= 5; i--) {
                 if (row[i] && row[i].includes('【')) { hintIdx = i; break; }
