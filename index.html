@@ -1,13 +1,12 @@
-<!-- Sento v30.8.08 (GitHub Edition) -->
+<!-- Sento v30.8.09 (GitHub Edition) -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- ブラウザのタブ表示を「Sento」に変更 -->
     <title>Sento</title>
-    <!-- 初期状態でライトモード用のアイコン（黒四角に白猫）をHTML内に直接埋め込み -->
-    <link id="favicon" rel="icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAP///wD///8AnZ2rAJ2dqwAAYQAAnZ2rAJ2dqwAAYQAAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasA////AP///wCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwD///8A////AJ2dqwCdoasAnZ2rAJ2dqwAAYQAAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwAAYQAAnZ2rAJ2dqwCdoasAnZ2rAP///wD///8AnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasA////AP///wCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwD///8A////AJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAP///wD///8AnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasA////AP///wCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwD///8A////AJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAP///wD///8AnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasA////AP///wCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwD///8A////AJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAP///wD///8AnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasA////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8AAA=="type="image/x-icon">
+    <!-- 初期状態のダミー -->
+    <link id="favicon" rel="icon" href="">
     
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Outfit:wght@500;700&family=Kosugi&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
@@ -102,7 +101,7 @@
     <header class="app-header">
         <div class="btn-back-col"><button id="header-back" class="btn-back hidden" onclick="app.goHome()">Index</button></div>
         <div class="app-logo-col"><div class="app-logo" onclick="app.goHome()">Sento</div></div>
-        <div class="version-col"><div class="version">v30.8.08</div></div>
+        <div class="version-col"><div class="version">v30.8.09</div></div>
     </header>
     <div id="screen-index" class="screen">
         <div class="game-main-container">
@@ -149,7 +148,6 @@ const app = {
     currGrade: 1, currIdx: 0, mode: 'easy', sentences: [], soundOn: true, synth: window.speechSynthesis, 
     isFinished: false, isJudging: false, audioCtx: null,
     async init() { 
-        // Chromeの強力なキャッシュ制限を突破するテーマ切り替え初期化
         this.initFaviconThemeForce();
 
         try {
@@ -185,28 +183,20 @@ const app = {
         new Sortable(document.getElementById('answer-line'), { animation: 150 });
         setTimeout(() => this.updateUnderlines(), 100);
     },
-    // HTML要素ごと完全に再生成してChromeに強制変更を認識させるメソッド
+    // 公式のGitHubアイコンSVGを直接安全に生成するメソッド
     initFaviconThemeForce() {
-        // ライト用：本家おなじみの黒背景白猫（ICO形式をBase64化）
-        const lightIcon = "data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAP///wD///8AnZ2rAJ2dqwAAYQAAnZ2rAJ2dqwAAYQAAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasA////AP///wCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwD///8A////AJ2dqwCdoasAnZ2rAJ2dqwAAYQAAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwAAYQAAnZ2rAJ2dqwCdoasAnZ2rAP///wD///8AnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasA////AP///wCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwD///8A////AJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAP///wD///8AnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasA////AP///wCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwD///8A////AJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAP///wD///8AnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasA////AP///wCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwD///8A////AJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAP///wD///8AnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasAnZ2rAJ2dqwCdoasA////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8AAA==";
-        // ダーク用：透過背景の白猫（SVG形式をBase64化）
-        const darkIcon = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTggMEMzLjU4IDAgMCAzLjU4IDAgOGMwIDMuNTQgMi4yOSA2LjUzIDUuNDcgNy41OS40LjA3LjU1LS4xNy41NS0uMzh2LTEuNDRjLTIuMjIuNDgtMi42OS0xLjA3LTIuNjktMS4wNy0uMzYtLjkyLS44OC0xLjE3LS44OC0xLjE3LS43Mi0uNDguMDUtLjQ3LjA1LS40Ny44LjA2IDEuMjIgLjg0IDEuMjIgLjg0LjcxIDEuMjIgMS44OC44NyAyLjMzLjY2LjA3LS41Mi4yOC0uODcuNTEtMS4wNy0xLjc4LS4yLTMuNjQtLjg5LTMuNjQtMy45NSAwLS44Ny4zMS0xLjU5LjgyLTIuMTUtLjA4LS4yLS4zNi0xLjAyLjA4LTIuMTIgMCAwIC42Ny0uMjEgMi4yLjgyLjY0LS4xOCAxLjMyLS4yNyAyLS4yNy42OCAwIDEuMzYuMDkgMiAuMjcgMS41My0xLjAzIDIuMi0uODIgMi4yLS44Mi40NCAxLjEuMTYgMS45Mi4wOCAyLjEyLjUxLjU2LjgyIDEuMjguODIgMi4xNSAwIDMuMDctMS44NyAzLjc1LTMuNjUgMy45NS4yOS4yNS41NC43My41NCAxLjQ4djIuMThjMCAuMjEuMTUuNDYuNTUuMzhBOC4wMTIgOC4wMTIgMCAwIDAgMTYgOEMxNiAzLjU4IDEyLjQyIDAgOCAwWiIvPjwvc3ZnPg==";
-        
         const updateIconForce = (e) => {
-            // 既存のfaviconタグを完全に消去
             const oldIcons = document.querySelectorAll("link[rel*='icon']");
             oldIcons.forEach(el => el.remove());
             
-            // 新しいlink要素をゼロから生成してheadに差し込む（Chromeのキャッシュバグ対策）
             const newLink = document.createElement('link');
             newLink.rel = 'icon';
-            if (e.matches) {
-                newLink.href = darkIcon;
-                newLink.type = 'image/svg+xml';
-            } else {
-                newLink.href = lightIcon;
-                newLink.type = 'image/x-icon';
-            }
+            newLink.type = 'image/svg+xml';
+            
+            // 本家GitHubのロゴSVG構造をテキスト形式でそのまま指定（#24292eが黒、#ffffffが白）
+            const fillColor = e.matches ? '%23ffffff' : '%2324292e';
+            newLink.href = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill="${fillColor}" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38v-1.44c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.88-1.17-.88-1.17-.72-.48.05-.47.05-.47.8.06 1.22.84 1.22.84.71 1.22 1.88.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.18c0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>`;
+            
             document.getElementsByTagName('head')[0].appendChild(newLink);
         };
         
